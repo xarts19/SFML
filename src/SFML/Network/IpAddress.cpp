@@ -34,7 +34,11 @@ namespace
 {
     sf::Uint32 resolve(const std::string& address)
     {
-        if (address == "255.255.255.255")
+        if (address == "")
+        {
+            return 0;
+        }
+        else if (address == "255.255.255.255")
         {
             // The broadcast address needs to be handled explicitely,
             // because it is also the value returned by inet_addr on error
