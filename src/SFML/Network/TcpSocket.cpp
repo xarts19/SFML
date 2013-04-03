@@ -108,6 +108,8 @@ unsigned short TcpSocket::getRemotePort() const
 ////////////////////////////////////////////////////////////
 Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short remotePort, Time timeout)
 {
+    bool checking_connection = priv::SocketImpl::invalidSocket() != getHandle();
+
     // Create the internal socket if it doesn't exist
     create();
 
@@ -117,6 +119,60 @@ Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short
     if (timeout <= Time::Zero)
     {
         // ----- We're not using a timeout: just try to connect -----
+
+        if (!isBlocking() && checking_connection)
+        {
+            // Setup the selector
+            fd_set conn_set;
+            FD_ZERO(&conn_set);
+            FD_SET(getHandle(), &conn_set);
+
+            fd_set error_set;
+            FD_ZERO(&error_set);
+            FD_SET(getHandle(), &error_set);
+
+            // Setup the timeout
+            timeval time;
+            time.tv_sec  = 0;
+            time.tv_usec = 0;
+
+            // Wait for something to write on our socket (which means that the connection request has returned)
+            int ret = select(static_cast<int>(getHandle() + 1), NULL, &conn_set, &error_set, &time);
+            if (ret > 0)
+            {
+                if (FD_ISSET(getHandle(), &conn_set))
+                {
+                    return Done;
+                }
+                else if (FD_ISSET(getHandle(), &error_set))
+                {
+                    int err = 0;
+                    int size = sizeof(int);
+                    if (getsockopt(getHandle(), SOL_SOCKET, SO_ERROR, (char*)&err, &size) == 0)
+                    {
+                        // err is error
+                        return Error;
+                    }
+                    else
+                    {
+                        // couldn't get error
+                        return Error;
+                    }
+                }
+                else
+                {
+                    return Error;  // unknown error
+                }
+            }
+            else if (ret == 0)
+            {
+                return NotReady;
+            }
+            else
+            {
+                return Error;
+            }
+        }
 
         // Connect the socket
         if (::connect(getHandle(), reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)
@@ -140,13 +196,14 @@ Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short
         if (::connect(getHandle(), reinterpret_cast<sockaddr*>(&address), sizeof(address)) >= 0)
         {
             // We got instantly connected! (it may no happen a lot...)
+            setBlocking(blocking);
             return Done;
         }
 
         // Get the error status
         Status status = priv::SocketImpl::getErrorStatus();
 
-        // If we were in non-blocking mode, return immediatly
+        // If we were in non-blocking mode, return immediately
         if (!blocking)
             return status;
 
@@ -187,7 +244,7 @@ Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short
         }
 
         // Switch back to blocking mode
-        setBlocking(true);
+        setBlocking(blocking);
 
         return status;
     }
