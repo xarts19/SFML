@@ -61,6 +61,21 @@ void Socket::setBlocking(bool blocking)
 }
 
 
+void Socket::setRecvTimeout(unsigned long timeout_ms)
+{
+    if (m_socket == priv::SocketImpl::invalidSocket())
+        return;
+        
+    struct timeval tv;
+
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    int status = setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
+    // status == 0 ~ no error
+}
+
+
 ////////////////////////////////////////////////////////////
 bool Socket::isBlocking() const
 {

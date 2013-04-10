@@ -93,6 +93,8 @@ public :
     ///
     ////////////////////////////////////////////////////////////
     void setBlocking(bool blocking);
+    
+    void setRecvTimeout(unsigned long timeout_ms);
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether the socket is in blocking or non-blocking mode

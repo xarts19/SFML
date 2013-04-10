@@ -356,6 +356,8 @@ Http::Response Http::sendRequest(const Http::Request& request, Time timeout)
                 std::string receivedStr;
                 std::size_t size = 0;
                 char buffer[1024];
+
+                m_connection.setRecvTimeout(timeout.asMilliseconds());
                 while (m_connection.receive(buffer, sizeof(buffer), size) == Socket::Done)
                 {
                     receivedStr.append(buffer, buffer + size);
