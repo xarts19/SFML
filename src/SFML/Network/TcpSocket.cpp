@@ -146,6 +146,7 @@ Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short
                 }
                 else if (FD_ISSET(getHandle(), &error_set))
                 {
+                    /*
                     int err = 0;
                     int size = sizeof(int);
                     if (getsockopt(getHandle(), SOL_SOCKET, SO_ERROR, (char*)&err, &size) == 0)
@@ -158,6 +159,8 @@ Socket::Status TcpSocket::connect(const IpAddress& remoteAddress, unsigned short
                         // couldn't get error
                         return Error;
                     }
+                    */
+                    return Error;
                 }
                 else
                 {
